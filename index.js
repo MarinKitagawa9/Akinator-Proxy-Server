@@ -18,7 +18,7 @@ app.get("/", (req, res) => {
       answer: "/answer?session=...&signature=...&step=...&answer=...",
       guess: "/guess?session=...&signature=...&step=..."
     },
-    author: "🧞 Rajib's Magical Proxy 💫"
+    author: "🧞 Sten-X Magical Proxy 💫"
   });
 });
 
