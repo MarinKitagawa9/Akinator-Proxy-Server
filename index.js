@@ -1,4 +1,3 @@
-// index.js — Akinator proxy with retries + timeouts
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
@@ -9,74 +8,76 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 10000;
 
-// root check
+// 💖 Root endpoint (health check)
 app.get("/", (req, res) => {
   res.json({
     status: "ok",
-    message: "Akinator Proxy Running Successfully!",
+    message: "✨ Akinator Proxy Server is alive & smiling 😸",
     endpoints: {
       start: "/start?region=en&type=character",
       answer: "/answer?session=...&signature=...&step=...&answer=...",
       guess: "/guess?session=...&signature=...&step=..."
-    }
+    },
+    author: "🧞 Rajib's Magical Proxy 💫"
   });
 });
 
-// start new session (tries multiple mirrors, short timeout)
+// 🎮 Start a new Akinator session
 app.get("/start", async (req, res) => {
   try {
-    // region and type params (not all mirrors use them — kept for forward compat)
     const region = req.query.region || "en";
     const type = req.query.type || "character";
 
-    // list of Akinator endpoints (mirrors). We try each until one works.
+    // 🧞‍♂️ USA + fallback mirrors
     const tryUrls = [
-      // public Akinator endpoints used by many libs — we try a few variants
-      "https://srv12.akinator.com:443/ws/new_session?partner=1&player=website-desktop",
-      "https://srv13.akinator.com:443/ws/new_session?partner=1&player=website-desktop",
+      "https://api-usa.akinator.com/ws/new_session?partner=1&player=website-desktop",
+      "https://srv2.akinator.com/ws/new_session?partner=1&player=website-desktop",
+      "https://srv3.akinator.com/ws/new_session?partner=1&player=website-desktop",
       "https://en.akinator.com/ws/new_session?partner=1&player=website-desktop"
     ];
 
-    let successful = null;
+    let success = null;
     for (const url of tryUrls) {
+      console.log(`🌐 Trying mirror: ${url}`);
       try {
-        const r = await axios.get(url, { timeout: 10000 }); // 10s timeout
-        if (r && r.data) {
-          // basic sanity: check for expected fields
-          if (typeof r.data === "object" && Object.keys(r.data).length) {
-            successful = { url, data: r.data };
-            break;
-          }
+        const r = await axios.get(url, { timeout: 8000 });
+        if (r.data && typeof r.data === "object") {
+          success = { url, data: r.data };
+          break;
         }
       } catch (e) {
-        console.log(`Mirror failed: ${url} -> ${e.message}`);
+        console.log(`❌ Failed: ${url} → ${e.message}`);
       }
     }
 
-    if (!successful) {
+    // ❌ If no mirror succeeded
+    if (!success) {
       return res.status(500).json({
-        error: "All Akinator servers failed",
+        error: "All Akinator mirrors failed 😿",
         details:
-          "Tried multiple mirrors with short timeout. Either network blocks outgoing requests, or Akinator mirrors are unreachable."
+          "We tried all known mirrors (USA, EU). Akinator might be down or blocked from this region.",
+        tip: "Try again in a few minutes or host on Replit for open network 🌍"
       });
     }
 
-    // return the raw data from mirror (caller can parse)
+    // ✅ Success!
     return res.json({
       status: "ok",
-      message: "Akinator session started successfully!",
-      mirror: successful.url,
-      payload: successful.data
+      message: "🎉 Akinator session started successfully!",
+      mirror: success.url,
+      payload: success.data,
+      cute_note: "Have fun guessing! 💫✨"
     });
   } catch (err) {
-    console.error("Start Error:", err);
+    console.error("🚨 Start Error:", err.message);
     res.status(500).json({
-      error: "Failed to start Akinator session",
-      details: err.message || err
+      error: "Failed to start Akinator session 💔",
+      details: err.message
     });
   }
 });
 
+// 🚀 Start server
 app.listen(PORT, () => {
-  console.log("🧞 Akinator Proxy running on port", PORT);
+  console.log(`🧞 Akinator Proxy running happily on port ${PORT}`);
 });
